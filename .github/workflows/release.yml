@@ -1,0 +1,64 @@
+name: Release VSCode Extension
+
+on:
+  push:
+    tags:
+      - 'v*' # Only runs on version tags like v0.0.1
+
+jobs:
+  build:
+    name: Build & Package Extension
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint code
+        run: npm run lint
+
+      - name: Compile extension
+        run: npm run compile
+
+      - name: Package VSCode extension
+        run: npx vsce package
+        env:
+          VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prime-gen-vscode
+          path: '*.vsix'
+          
+      - name: Publish to VS Code Marketplace
+        run: npx vsce publish -p $VSCE_TOKEN
+        env:
+            VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
+
+
+  release:
+    name: GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: prime-gen-vscode
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: '*.vsix'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

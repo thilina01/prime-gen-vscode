@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*' # Only runs on version tags like v0.0.1
 
+permissions:
+  contents: write  # Needed to create GitHub releases
+
 jobs:
   build:
     name: Build & Package Extension

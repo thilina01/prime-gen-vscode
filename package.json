@@ -9,9 +9,15 @@
     "url": "https://github.com/thilina01/prime-gen-vscode"
   },
   "license": "MIT",
-  "engines": { "vscode": "^1.101.0" },
-  "categories": ["Other"],
-  "activationEvents": ["onCommand:prime-gen.generateTailwindForm"],
+  "engines": {
+    "vscode": "^1.101.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:prime-gen.generateTailwindForm"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -20,7 +26,18 @@
         "title": "Prime Gen: Generate Tailwind Form",
         "category": "Prime Gen"
       }
-    ]
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Prime Gen Configuration",
+      "properties": {
+        "primeGen.apiUrl": {
+          "type": "string",
+          "default": "http://192.168.1.53:8082/api",
+          "description": "Base URL for the Prime Agent API"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

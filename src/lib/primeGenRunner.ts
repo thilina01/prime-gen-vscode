@@ -1,10 +1,14 @@
 import * as fs from "fs/promises";
 import * as path from "path";
 import * as vscode from "vscode";
-import { Project, SyntaxKind } from 'ts-morph';
+import { Project, SyntaxKind } from "ts-morph";
 
-const BACKEND_API =
-  process.env.PRIME_AGENT_API_URL || "http://192.168.1.53:8082/api";
+export function getApiUrl(): string {
+  const config = vscode.workspace.getConfiguration("primeGen");
+  return config.get<string>("apiUrl") || "http://localhost:8000";
+}
+
+const BACKEND_API = getApiUrl();
 
 function toCamelCase(str: string): string {
   return str
@@ -72,54 +76,56 @@ export async function runPrimeGen(
   const kebab = toKebabCase(camel);
   const pascal = camel.charAt(0).toUpperCase() + camel.slice(1);
   const title = camel
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .split(' ')
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .split(" ")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(' ');
+    .join(" ");
 
-  const basePath = path.join(workspaceRoot, 'src', 'app', 'apps', kebab);
-  progress?.report({ message: '📁 Creating target folder...' });
+  const basePath = path.join(workspaceRoot, "src", "app", "apps", kebab);
+  progress?.report({ message: "📁 Creating target folder..." });
   await fs.mkdir(basePath, { recursive: true });
 
-  progress?.report({ message: '📖 Reading selected HTML form...' });
-  const htmlContent = await fs.readFile(htmlFilePath, 'utf-8');
+  progress?.report({ message: "📖 Reading selected HTML form..." });
+  const htmlContent = await fs.readFile(htmlFilePath, "utf-8");
 
-  progress?.report({ message: '🔍 Extracting form fields from HTML...' });
+  progress?.report({ message: "🔍 Extracting form fields from HTML..." });
   const formJson = await extractFormFieldsToJson(htmlContent);
 
-  progress?.report({ message: '🎨 Generating Tailwind HTML layout...' });
+  progress?.report({ message: "🎨 Generating Tailwind HTML layout..." });
   const generatedHtml = await generateTailwindHTML(formJson, title);
 
   const formFilePath = path.join(basePath, `${kebab}-form.component.html`);
-  progress?.report({ message: '📝 Writing form.component.html...' });
+  progress?.report({ message: "📝 Writing form.component.html..." });
   await writeFileToWorkspace(formFilePath, generatedHtml);
 
-  progress?.report({ message: '🧠 Creating model interface...' });
+  progress?.report({ message: "🧠 Creating model interface..." });
   await generateInterfaceFile(formJson, basePath, pascal, kebab);
 
-  progress?.report({ message: '⚙️ Generating form.component.ts...' });
+  progress?.report({ message: "⚙️ Generating form.component.ts..." });
   await generateFormComponentTs(formJson, basePath, pascal, kebab, camel);
 
-  progress?.report({ message: '📦 Creating service.ts and routes.ts...' });
+  progress?.report({ message: "📦 Creating service.ts and routes.ts..." });
   await generateServiceFile(basePath, pascal, kebab);
   await generateRoutesFile(basePath, camel, kebab);
 
-  progress?.report({ message: '📊 Generating table.component files...' });
+  progress?.report({ message: "📊 Generating table.component files..." });
   await generateTableComponent(basePath, pascal, camel, kebab, title, formJson);
 
-  progress?.report({ message: '🧭 Updating apps.routes.ts...' });
+  progress?.report({ message: "🧭 Updating apps.routes.ts..." });
   await updateAppsRoutesTs(kebab, camel, title, workspaceRoot);
 
-  progress?.report({ message: '📋 Showing suggested menu entry...' });
+  progress?.report({ message: "📋 Showing suggested menu entry..." });
   showSuggestedMenuEntry(kebab, title);
 
-  progress?.report({ message: '🎨 Writing SCSS placeholder...' });
+  progress?.report({ message: "🎨 Writing SCSS placeholder..." });
   await writeFileToWorkspace(
     path.join(basePath, `${kebab}-form.component.scss`),
     `/* styles for ${kebab} form */`
   );
 
-  vscode.window.showInformationMessage(`✅ Tailwind form HTML generated: ${formFilePath}`);
+  vscode.window.showInformationMessage(
+    `✅ Tailwind form HTML generated: ${formFilePath}`
+  );
 }
 
 async function generateInterfaceFile(
@@ -218,7 +224,11 @@ ${formGroupLines}
   );
 }
 
-async function generateServiceFile(basePath: string, pascal: string, kebab: string) {
+async function generateServiceFile(
+  basePath: string,
+  pascal: string,
+  kebab: string
+) {
   const content = `
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
@@ -235,10 +245,17 @@ export class ${pascal}Service {
 }
 `.trim();
 
-  await writeFileToWorkspace(path.join(basePath, `${kebab}.service.ts`), content);
+  await writeFileToWorkspace(
+    path.join(basePath, `${kebab}.service.ts`),
+    content
+  );
 }
 
-async function generateRoutesFile(basePath: string, camel: string, kebab: string) {
+async function generateRoutesFile(
+  basePath: string,
+  camel: string,
+  kebab: string
+) {
   const content = `
 import { Routes } from '@angular/router';
 
@@ -247,19 +264,26 @@ export const ${camel}Routes: Routes = [
   {
     path: 'table',
     loadComponent: () =>
-      import('./${kebab}-table.component').then(m => m.${camel.charAt(0).toUpperCase() + camel.slice(1)}TableComponent),
+      import('./${kebab}-table.component').then(m => m.${
+    camel.charAt(0).toUpperCase() + camel.slice(1)
+  }TableComponent),
     data: { breadcrumb: 'Table' }
   },
   {
     path: 'form',
     loadComponent: () =>
-      import('./${kebab}-form.component').then(m => m.${camel.charAt(0).toUpperCase() + camel.slice(1)}FormComponent),
+      import('./${kebab}-form.component').then(m => m.${
+    camel.charAt(0).toUpperCase() + camel.slice(1)
+  }FormComponent),
     data: { breadcrumb: 'Form' }
   }
 ];
 `.trim();
 
-  await writeFileToWorkspace(path.join(basePath, `${kebab}.routes.ts`), content);
+  await writeFileToWorkspace(
+    path.join(basePath, `${kebab}.routes.ts`),
+    content
+  );
 }
 
 async function generateTableComponent(
@@ -290,13 +314,15 @@ async function generateTableComponent(
     <p-table [value]="items">
       <ng-template pTemplate="header">
         <tr>
-          ${fields.map(f => `<th>${f.label}</th>`).join('\n')}
+          ${fields.map((f) => `<th>${f.label}</th>`).join("\n")}
           <th>Actions</th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-item>
         <tr>
-          ${fields.map(f => `<td>{{ item.${f.formControlName} }}</td>`).join('\n')}
+          ${fields
+            .map((f) => `<td>{{ item.${f.formControlName} }}</td>`)
+            .join("\n")}
           <td>
             <div class="flex gap-2">
               <button pButton icon="pi pi-pencil" class="p-button-warning p-button-sm" (click)="editItem(item.id)"></button>
@@ -341,7 +367,11 @@ export class ${pascal}TableComponent implements OnInit {
     const nextId = this.items.length + 1;
     this.items = [...this.items, {
       id: nextId,
-${fields.map((f, i) => `      ${f.formControlName}: '${f.formControlName}_val' + nextId`).join(',\n')}
+${fields
+  .map(
+    (f, i) => `      ${f.formControlName}: '${f.formControlName}_val' + nextId`
+  )
+  .join(",\n")}
     }];
   }
 
@@ -361,34 +391,64 @@ ${fields.map((f, i) => `      ${f.formControlName}: '${f.formControlName}_val' +
 
   const tableScss = `/* styles for ${kebab} table */`;
 
-  await writeFileToWorkspace(path.join(basePath, `${kebab}-table.component.html`), tableHtml);
-  await writeFileToWorkspace(path.join(basePath, `${kebab}-table.component.ts`), tableTs);
-  await writeFileToWorkspace(path.join(basePath, `${kebab}-table.component.scss`), tableScss);
+  await writeFileToWorkspace(
+    path.join(basePath, `${kebab}-table.component.html`),
+    tableHtml
+  );
+  await writeFileToWorkspace(
+    path.join(basePath, `${kebab}-table.component.ts`),
+    tableTs
+  );
+  await writeFileToWorkspace(
+    path.join(basePath, `${kebab}-table.component.scss`),
+    tableScss
+  );
 }
 
-async function updateAppsRoutesTs(appKebab: string, appCamel: string, appTitle: string, workspaceRoot: string) {
-  const filePath = path.join(workspaceRoot, 'src', 'app', 'apps', 'apps.routes.ts');
+async function updateAppsRoutesTs(
+  appKebab: string,
+  appCamel: string,
+  appTitle: string,
+  workspaceRoot: string
+) {
+  const filePath = path.join(
+    workspaceRoot,
+    "src",
+    "app",
+    "apps",
+    "apps.routes.ts"
+  );
   const project = new Project();
   let sourceFile;
 
   try {
     sourceFile = project.addSourceFileAtPath(filePath);
   } catch (error) {
-    vscode.window.showWarningMessage(`apps.routes.ts not found at ${filePath}. Skipping route injection.`);
+    vscode.window.showWarningMessage(
+      `apps.routes.ts not found at ${filePath}. Skipping route injection.`
+    );
     return;
   }
 
-  const routesArray = sourceFile.getFirstDescendantByKind(SyntaxKind.ArrayLiteralExpression);
+  const routesArray = sourceFile.getFirstDescendantByKind(
+    SyntaxKind.ArrayLiteralExpression
+  );
 
   if (!routesArray) {
-    vscode.window.showWarningMessage('Could not locate routes array in apps.routes.ts');
+    vscode.window.showWarningMessage(
+      "Could not locate routes array in apps.routes.ts"
+    );
     return;
   }
 
-  const alreadyExists = routesArray.getElements().some(el => el.getText().includes(`path: '${appKebab}'`));
+  const alreadyExists = routesArray
+    .getElements()
+    .some((el) => el.getText().includes(`path: '${appKebab}'`));
 
   if (alreadyExists) {
-    vscode.window.showInformationMessage(`⚠️ Route for '${appKebab}' already exists in apps.routes.ts`);
+    vscode.window.showInformationMessage(
+      `⚠️ Route for '${appKebab}' already exists in apps.routes.ts`
+    );
     return;
   }
 
@@ -401,7 +461,9 @@ async function updateAppsRoutesTs(appKebab: string, appCamel: string, appTitle: 
 
   routesArray.addElement(newRoute);
   await sourceFile.save();
-  vscode.window.showInformationMessage(`✅ apps.routes.ts updated with '${appKebab}' route`);
+  vscode.window.showInformationMessage(
+    `✅ apps.routes.ts updated with '${appKebab}' route`
+  );
 }
 
 function generateMockItems(fields: any[]): any[] {
@@ -417,15 +479,44 @@ function generateMockItems(fields: any[]): any[] {
 }
 
 function showSuggestedMenuEntry(appKebab: string, title: string) {
-  const output = vscode.window.createOutputChannel('PrimeGen');
-  output.appendLine(`💡 Paste this into your desired location in app.menu.ts:\n`);
-  output.appendLine(`{
+  const output = vscode.window.createOutputChannel("PrimeGen");
+  const menuSnippet = `{
   label: '${title}',
   icon: 'pi pi-fw pi-file',
   items: [
     { label: 'Table', icon: 'pi pi-fw pi-list', routerLink: ['/apps/${appKebab}/table'] },
     { label: 'Form',  icon: 'pi pi-fw pi-pencil', routerLink: ['/apps/${appKebab}/form']  }
   ]
-}`);
+}`;
+
+  output.appendLine(
+    `💡 Paste this into your desired location in:\n  src/app/layout/components/app.menu.ts\n`
+  );
+  output.appendLine(menuSnippet);
   output.show(true);
+
+  // Attempt to open the file
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (workspaceFolders && workspaceFolders.length > 0) {
+    const filePath = path.join(
+      workspaceFolders[0].uri.fsPath,
+      "src",
+      "app",
+      "layout",
+      "components",
+      "app.menu.ts"
+    );
+    const fileUri = vscode.Uri.file(filePath);
+
+    vscode.workspace.openTextDocument(fileUri).then(
+      (doc) => {
+        vscode.window.showTextDocument(doc, { preview: false });
+      },
+      (err) => {
+        vscode.window.showWarningMessage(
+          `⚠️ Unable to open app.menu.ts: ${err.message}`
+        );
+      }
+    );
+  }
 }

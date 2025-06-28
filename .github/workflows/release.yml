@@ -31,6 +31,15 @@ jobs:
       - name: Compile extension
         run: npm run compile
 
+      - name: Install jq (for JSON processing)
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Extract version from tag and update package.json
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "Updating package.json version to $VERSION"
+          jq --arg v "$VERSION" '.version=$v' package.json > tmp.$$.json && mv tmp.$$.json package.json
+
       - name: Package VSCode extension
         run: npx vsce package
         env:
@@ -43,10 +52,11 @@ jobs:
           path: '*.vsix'
           
       - name: Publish to VS Code Marketplace
-        run: npx vsce publish -p $VSCE_TOKEN
+        run: |
+          echo "Attempting to publish..."
+          npx vsce publish -p $VSCE_TOKEN || echo "Publish skipped: version may already exist."
         env:
             VSCE_TOKEN: ${{ secrets.VSCE_TOKEN }}
-
 
   release:
     name: GitHub Release

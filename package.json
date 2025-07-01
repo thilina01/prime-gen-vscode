@@ -17,6 +17,7 @@
     "Other"
   ],
   "activationEvents": [
+    "onStartupFinished",
     "onCommand:prime-gen.generateTailwindForm"
   ],
   "main": "./out/extension.js",

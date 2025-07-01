@@ -1,0 +1,53 @@
+package-lock.json
+README.md
+
+# === Build Metadata / Tool Files ===
+.metadata
+.devtools_options.yaml
+
+# === CI/CD Directories ===
+.github/
+.gitlab/
+
+# === Resource & Layout Files (non-code) ===
+*.xml
+*.plist
+*.storyboard
+*.xcconfig
+*.pbxproj
+
+# === Android Resource Folders (non-code) ===
+android/app/src/main/res/drawable*
+android/app/src/main/res/mipmap*
+android/app/src/main/res/values*/  # values, values-night, etc.
+
+# === Android Local Config (already in .gitignore but safe fallback) ===
+android/key.properties
+android/local.properties
+
+# === iOS / Xcode Config (in case Flutter is integrated) ===
+ios/Runner.xcodeproj/project.xcworkspace/
+ios/Runner.xcodeproj/xcshareddata/
+ios/Runner.xcodeproj/xcuserdata/
+ios/Runner.xcworkspace/
+
+# === Non-Source Assets (media/fonts/docs) ===
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.svg
+*.ico
+*.ttf
+*.otf
+*.woff*
+*.mp3
+*.mp4
+*.wav
+*.ogg
+*.pdf
+
+# === Misc / Testing (optional) ===
+test/
+*.xctest
